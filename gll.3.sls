@@ -267,5 +267,5 @@
 ;; (define-parser num
 ;;   (red digit string->number))
 
-;; (stream->list (expr "1*2+3*4"))
-;; (stream->list (expr "9-(5+2)"))
+;; (expr "1*2+3*4")
+;; (expr "9-(5+2)")
