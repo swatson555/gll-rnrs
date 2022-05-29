@@ -209,11 +209,9 @@
        (define (seq2 a b)
          (bind a (lambda (x)
                    (bind b (lambda (y)
-                             (succeed (append (list x)
-                                              (if (or (pair? y)
-                                                      (null? y))
-                                                  y
-                                                  (list y)))))))))
+                             (succeed (if (or (pair? y) (null? y))
+                                          (cons x y)
+                                          (list x y))))))))
        (fold-right seq2 (succeed '()) parsers))))
 
   (define alt
