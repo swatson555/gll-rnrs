@@ -6,8 +6,8 @@
           seq
           alt
           red)
-  (import (match)
-          (only (scheme) set-car! set-cdr! force delay)
+  (import (only (rnrs mutable-pairs) set-car! set-cdr!)
+          (only (rnrs r5rs) force delay)
           (rename (rnrs)
                   (string rnrs-string)))
 
@@ -160,11 +160,15 @@
       (make-stream
        (parser str tramp
                (lambda (result)
-                 (match result
-                   [(success ,val ,rest)
-                    (when (string=? rest "")
-                      (set! results (cons result results)))]
-                   [(failure ,str) `(failure ,str)])))
+                 (cond
+                  [(eq? (car result) 'success)
+                   (let ((val (cadr result))
+                         (rest (caddr result)))
+                     (when (string=? rest "")
+                       (set! results (cons result results))))]
+                  [(eq? (car result) 'failure)
+                   (let ((str (cadr result)))
+                     `(failure ,str))])))
        (compute))))
 
   (define (memo fn)
@@ -199,9 +203,14 @@
     (lambda (str tramp cont)
       (p str tramp
          (lambda (result)
-           (match result
-             [(success ,val ,rest) ((fn val) rest tramp cont)]
-             [(failure ,str) (cont `(failure ,str))])))))
+           (cond
+            [(eq? (car result) 'success)
+             (let ((val (cadr result))
+                   (rest (caddr result)))
+               ((fn val) rest tramp cont))]
+            [(eq? (car result) 'failure)
+             (let ((str (cadr result)))
+               (cont `(failure ,str)))])))))
 
   (define seq
     (memo
@@ -227,9 +236,9 @@
     (memo
      (lambda (p fn)
        (bind p (lambda (val)
-                 (match val
-                   [(,val ...) (succeed (apply fn val))]
-                   [,_ (succeed (fn val))])))))))
+                 (if (list? val)
+                     (succeed (apply fn val))
+                     (succeed (fn val)))))))))
 
 ;; (define-parser expr
 ;;   (alt (red (seq expr (string "+") term)

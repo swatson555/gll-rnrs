@@ -5,10 +5,7 @@
           bind
           seq
           alt)
-  ;;; Notes! uses match in a simple way. really
-  ;;; all that's here are tagged lists...
-  (import (match)
-          (rename (rnrs)
+  (import (rename (rnrs)
                   (string rnrs-string)))
 
   (define-syntax delay-parser
@@ -55,9 +52,15 @@
 
   (define (bind p fn)
     (lambda (str)
-      (match (p str)
-        [(success ,val ,rest) ((fn val) rest)]
-        [(failure ,str) `(failure ,str)])))
+      (define option (p str))
+      (cond
+       [(eq? (car option) 'success)
+        (let ((val (cadr option))
+              (rest (caddr option)))
+          ((fn val) rest))]
+       [(eq? (car option) 'failure)
+        (let ((str (cadr option)))
+          `(failure ,str))])))
 
   (define seq
     (memo
@@ -73,9 +76,14 @@
        (memo
         (lambda (str)
           (let ((result (a str)))
-            (match result
-              [(success ,val ,rest) result]
-              [(failure ,str) (b str)]))))))))
+            (cond
+             [(eq? (car result) 'success)
+              (let ((val (cadr result))
+                    (rest (caddr result)))
+                result)]
+             [(eq? (car result) 'failure)
+              (let ((str (cadr result)))
+                (b str))]))))))))
 
 ;; (define-parser article
 ;;   (alt (string "the ")

@@ -5,8 +5,7 @@
           bind
           seq
           alt)
-  (import (match)
-          (only (scheme) set-car! set-cdr!)
+  (import (only (rnrs mutable-pairs) set-car! set-cdr!)
           (rename (rnrs)
                   (string rnrs-string)))
 
@@ -33,11 +32,15 @@
   (define (run-parser parser str)
     (let ((results '()))
       (parser str (lambda (result)
-                    (match result
-                      [(success ,val ,rest)
-                       (when (string=? rest "")
-                         (set! results (cons result results)))]
-                      [(failure ,str) `(failure ,str)])))
+                    (cond
+                     [(eq? (car result) 'success)
+                      (let ((val (cadr result))
+                            (rest (caddr result)))
+                        (when (string=? rest "")
+                          (set! results (cons result results))))]
+                     [(eq? (car result) 'failure)
+                      (let ((str (cadr result)))
+                        `(failure ,str))])))
       results))
 
   (define (memo fn)
@@ -115,9 +118,14 @@
   (define (bind p fn)
     (lambda (str cont)
       (p str (lambda (result)
-               (match result
-                 [(success ,val ,rest) ((fn val) rest cont)]
-                 [(failure ,str) (cont `(failure ,str))])))))
+               (cond
+                [(eq? (car result) 'success)
+                 (let ((val (cadr result))
+                       (rest (caddr result)))
+                   ((fn val) rest cont))]
+                [(eq? (car result) 'failure)
+                 (let ((str (cadr result)))
+                   (cont `(failure ,str)))])))))
 
   (define seq
     (memo
